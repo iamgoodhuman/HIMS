@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭信息管理系统</title>
+    <!-- 引入 Tailwind CSS 用于快速构建 UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义滚动条和基础样式 */
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🏠</span>
+            <h1 class="text-xl font-bold text-gray-800">家庭信息管理系统</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="relative text-gray-600 hover:text-blue-500">
+                <span class="text-xl">🔔</span>
+                <span class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
+            </button>
+            <div class="flex items-center space-x-2 cursor-pointer hover:text-blue-500">
+                <span class="text-xl">👤</span>
+                <span class="font-medium">张三</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- 左侧侧边栏 -->
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" onclick="switchPage('dashboard', this)" class="nav-item active flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>📊</span><span>首页看板</span>
+                </a>
+                <a href="#" onclick="switchPage('insurance', this)" class="nav-item flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>🛡️</span><span>保险管理</span>
+                </a>
+                <a href="#" onclick="switchPage('finance', this)" class="nav-item flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>💰</span><span>财务管理</span>
+                </a>
+                <a href="#" onclick="switchPage('assets', this)" class="nav-item flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>🏠</span><span>固定财产</span>
+                </a>
+                <a href="#" onclick="switchPage('calendar', this)" class="nav-item flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>📅</span><span>共享日历</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded hover:bg-gray-700">
+                    <span>⚙️</span><span>系统设置</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto p-8">
+            
+            <!-- 1. 首页看板 -->
+            <div id="dashboard" class="page active">
+                <h2 class="text-2xl font-bold mb-6">欢迎回家，张三！家庭资产总览</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-red-500">
+                        <h3 class="text-gray-500 text-sm mb-2">🔴 即将到期保险</h3>
+                        <p class="text-3xl font-bold">2 件</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                        <h3 class="text-gray-500 text-sm mb-2">💰 本月收支结余</h3>
+                        <p class="text-3xl font-bold text-green-600">+¥12,500</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+                        <h3 class="text-gray-500 text-sm mb-2">🏠 家庭资产总值</h3>
+                        <p class="text-3xl font-bold">¥850,000</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-bold mb-4">⚠️ 即将到期提醒</h3>
+                        <ul class="space-y-3 text-gray-600">
+                            <li class="flex justify-between border-b pb-2"><span>⏰ 张三-重疾险</span><span class="text-red-500">剩 5 天到期</span></li>
+                            <li class="flex justify-between border-b pb-2"><span>⏰ 李四-车险</span><span class="text-orange-500">剩 12 天到期</span></li>
+                            <li class="flex justify-between"><span>⏰ 房贷还款日</span><span class="text-gray-500">剩 3 天</span></li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow flex flex-col">
+                        <h3 class="font-bold mb-4">📈 月度财务趋势</h3>
+                        <div class="flex-1 flex flex-col justify-center space-y-3">
+                            <div><span class="text-sm">收入:</span><div class="w-full bg-green-200 rounded h-6"><div class="bg-green-500 h-6 rounded w-3/4"></div></div></div>
+                            <div><span class="text-sm">支出:</span><div class="w-full bg-red-200 rounded h-6"><div class="bg-red-500 h-6 rounded w-2/5"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 保险管理 -->
+            <div id="insurance" class="page">
+                <h2 class="text-2xl font-bold mb-6">🛡️ 保险管理</h2>
+                <div class="bg-white p-4 rounded-lg shadow mb-6 flex items-center space-x-4">
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-1 bg-blue-500 text-white rounded">全部</button>
+                        <button class="px-4 py-1 bg-gray-200 rounded hover:bg-gray-300">我的</button>
+                        <button class="px-4 py-1 bg-gray-200 rounded hover:bg-gray-300">配偶</button>
+                    </div>
+                    <select class="border rounded px-3 py-1 text-sm">
+                        <option>所有险种</option>
+                        <option>重疾险</option>
+                        <option>车险</option>
+                    </select>
+                    <input type="text" placeholder="🔍 搜索..." class="border rounded px-3 py-1 flex-1">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">+ 录入保险</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-4 rounded-lg shadow border-t-4 border-red-500">
+                        <h3 class="font-bold text-lg mb-2">重疾险 (张三)</h3>
+                        <div class="text-sm text-gray-600 space-y-1 mb-4">
+                            <p>保险公司: 平安</p>
+                            <p>保额: 50 万</p>
+                            <p>生效: 2022-11-25</p>
+                            <p class="text-red-500 font-bold">⏳ 到期: 2023-11-25 (剩5天)</p>
+                        </div>
+                        <div class="flex justify-end space-x-2 border-t pt-3">
+                            <button class="text-blue-500 text-sm hover:underline">📄 详情</button>
+                            <button class="text-green-500 text-sm hover:underline">✏️ 编辑</button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border-t-4 border-orange-500">
+                        <h3 class="font-bold text-lg mb-2">车险 (李四)</h3>
+                        <div class="text-sm text-gray-600 space-y-1 mb-4">
+                            <p>保险公司: 人保</p>
+                            <p>保额: 100 万</p>
+                            <p>生效: 2022-12-01</p>
+                            <p>到期: 2023-12-01</p>
+                        </div>
+                        <div class="flex justify-end space-x-2 border-t pt-3">
+                            <button class="text-blue-500 text-sm hover:underline">📄 详情</button>
+                            <button class="text-green-500 text-sm hover:underline">✏️ 编辑</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 财务管理 -->
+            <div id="finance" class="page">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">💰 家庭财务</h2>
+                    <div class="space-x-2">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded">+ 记账</button>
+                        <button class="bg-gray-200 px-4 py-2 rounded">导入账单</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 表格区 -->
+                    <div class="md:col-span-2 bg-white rounded-lg shadow overflow-hidden">
+                        <table class="min-w-full text-sm border-collapse">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="p-3 text-left">日期</th><th class="p-3 text-left">分类</th>
+                                    <th class="p-3 text-left">收入</th><th class="p-3 text-left">支出</th>
+                                    <th class="p-3 text-left">备注</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-gray-50"><td class="p-3">10-01</td><td>工资</td><td class="text-green-600">15,000</td><td>-</td><td class="text-gray-500">张三工资</td></tr>
+                                <tr class="hover:bg-gray-50"><td class="p-3">10-03</td><td>餐饮</td><td>-</td><td class="text-red-600">500</td><td class="text-gray-500">聚餐</td></tr>
+                                <tr class="hover:bg-gray-50"><td class="p-3">10-05</td><td>交通</td><td>-</td><td class="text-red-600">200</td><td class="text-gray-500">加油</td></tr>
+                                <tr class="hover:bg-gray-50"><td class="p-3">10-08</td><td>购物</td><td>-</td><td class="text-red-600">800</td><td class="text-gray-500">买衣服</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- AI 助手区 -->
+                    <div class="bg-white rounded-lg shadow p-6 flex flex-col">
+                        <h3 class="font-bold text-lg mb-4 flex items-center">🤖 AI 财务分析助手</h3>
+                        <div class="bg-blue-50 p-4 rounded mb-4 text-sm">
+                            <p class="font-bold mb-2">📊 本周财务体检：</p>
+                            <p>收入总计: <span class="text-green-600 font-bold">¥15,000</span></p>
+                            <p>支出总计: <span class="text-red-600 font-bold">¥1,500</span></p>
+                            <p>结余: <span class="font-bold">¥13,500</span></p>
+                        </div>
+                        <div class="text-sm text-gray-700 space-y-2 mb-4">
+                            <p class="font-bold">💡 AI 建议：</p>
+                            <p>1. 本周餐饮支出处于正常范围。</p>
+                            <p>2. 购物占比偏高，建议控制非必要消费。</p>
+                        </div>
+                        <button class="mt-auto bg-purple-500 text-white py-2 rounded hover:bg-purple-600">生成月度报告</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 固定财产 -->
+            <div id="assets" class="page">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">🏠 家庭固定资产</h2>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded">+ 录入财产</button>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow mb-6 flex space-x-4">
+                    <button class="px-4 py-1 bg-gray-200 rounded">全部</button>
+                    <button class="px-4 py-1 bg-gray-200 rounded">房产</button>
+                    <button class="px-4 py-1 bg-gray-200 rounded">车辆</button>
+                    <button class="px-4 py-1 bg-gray-200 rounded">家电</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="w-full h-32 bg-gray-200 flex items-center justify-center text-4xl">🚗</div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">沃尔沃 S90</h3>
+                            <div class="text-sm text-gray-600 space-y-1 mt-2">
+                                <p>类别: 车辆</p>
+                                <p>估值: <span class="font-bold text-blue-600">¥350,000</span></p>
+                                <p>📍 位置: 车库</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="w-full h-32 bg-gray-200 flex items-center justify-center text-4xl">💻</div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">Macbook Pro</h3>
+                            <div class="text-sm text-gray-600 space-y-1 mt-2">
+                                <p>类别: 电子产品</p>
+                                <p>估值: <span class="font-bold text-blue-600">¥12,000</span></p>
+                                <p>📍 位置: 书房</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. 共享日历 -->
+            <div id="calendar" class="page">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">📅 家庭共享日历</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-blue-500 text-white rounded">月视图</button>
+                        <button class="px-3 py-1 bg-gray-200 rounded">周视图</button>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="grid grid-cols-7 gap-2 text-center font-bold border-b pb-2 mb-2">
+                        <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2 text-sm">
+                        <!-- 日历单元格模拟 -->
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50"></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">1</div>
+                        
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">2</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">3</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">4</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">5</div>
+                        <div class="h-24 border rounded p-1 bg-red-50 border-red-200">6 <div class="mt-1 bg-red-500 text-white text-xs px-1 rounded truncate">🔴 房贷还款</div></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">7</div>
+                        <div class="h-24 border rounded p-1 bg-green-50 border-green-200">8 <div class="mt-1 bg-green-500 text-white text-xs px-1 rounded truncate">🟢 全家野餐</div></div>
+
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">9</div>
+                        <div class="h-24 border rounded p-1 bg-blue-50 border-blue-200">10 <div class="mt-1 bg-blue-500 text-white text-xs px-1 rounded truncate">🔵 李四体检</div></div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">11</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">12</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">13</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">14</div>
+                        <div class="h-24 border rounded p-1 hover:bg-gray-50">15</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // 原生 JS 实现侧边栏切换
+        function switchPage(pageId, element) {
+            // 阻止默认链接跳转
+            event.preventDefault();
+            
+            // 隐藏所有页面
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(p => p.classList.remove('active'));
+            
+            // 显示选中的页面
+            document.getElementById(pageId).classList.add('active');
+            
+            // 重置侧边栏样式
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('bg-blue-500');
+                item.classList.add('hover:bg-gray-700');
+            });
+            
+            // 高亮当前点击的侧边栏
+            element.classList.add('bg-blue-500');
+            element.classList.remove('hover:bg-gray-700');
+        }
+    </script>
+</body>
+</html>

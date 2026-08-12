@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify,request
 from db import get_db_connection  # 导入我们写的获取连接的方法
 user_bp = Blueprint('user', __name__ , url_prefix='/user')
 #所有用户列表
@@ -20,5 +20,17 @@ def index():
 #用户详情
 @user_bp.route('/detail', methods=['POST'])
 def detail():
-    return jsonify({'message': '获取用户详情'})
+    data = request.get_json()
+    return jsonify({'message': '获取用户详情',"data":data})
 
+#用户注册
+@user_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    
+    print("username",username)
+    return jsonify({
+        "msg":"用户注册",
+        "data":data
+    })

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭厨房助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 简单的过渡动画 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-item.active { background-color: #fff; color: #1f2937; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- 顶部导航栏 -->
+    <nav class="bg-gray-800 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-semibold">🍳 家庭厨房助手</h1>
+            <div class="flex space-x-2">
+                <button onclick="switchTab('food')" id="nav-food" class="nav-item px-4 py-2 rounded transition-colors hover:bg-gray-700 active">食物管理</button>
+                <button onclick="switchTab('recipe')" id="nav-recipe" class="nav-item px-4 py-2 rounded transition-colors hover:bg-gray-700">食谱推荐</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 flex-grow">
+        
+        <!-- 子页面一：家庭食物管理 -->
+        <section id="food-section" class="tab-content active">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">当前库存</h2>
+                    <button onclick="toggleAddForm()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">+ 添加食材</button>
+                </div>
+
+                <!-- 添加食材表单 (默认隐藏) -->
+                <div id="add-form" class="hidden mb-6 p-4 border rounded-lg bg-gray-50">
+                    <h3 class="text-lg font-semibold mb-2">录入新食材</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="food-name" placeholder="食材名称 (如: 西红柿)" class="p-2 border rounded">
+                        <input type="number" id="food-qty" placeholder="数量" class="p-2 border rounded">
+                        <select id="food-cat" class="p-2 border rounded">
+                            <option value="蔬菜">蔬菜</option>
+                            <option value="肉类">肉类</option>
+                            <option value="主食">主食</option>
+                            <option value="调料">调料</option>
+                        </select>
+                        <button onclick="addFood()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">确认添加</button>
+                    </div>
+                </div>
+
+                <!-- 食物列表 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="food-list">
+                    <!-- JS 动态渲染 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 子页面二：食谱推荐 -->
+        <section id="recipe-section" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold mb-2 md:mb-0">今日吃什么？</h2>
+                    <div class="flex space-x-2">
+                        <span class="text-sm text-gray-500 self-center mr-2">基于现有库存智能匹配</span>
+                        <button onclick="generateRandomRecipe()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 font-bold animate-pulse">🎲 随机生成</button>
+                    </div>
+                </div>
+
+                <!-- 随机生成的特色菜谱区 -->
+                <div id="random-recipe-area" class="hidden mb-6 p-4 border-2 border-purple-200 rounded-lg bg-purple-50">
+                    <!-- JS 动态渲染 -->
+                </div>
+
+                <!-- 推荐菜谱列表 -->
+                <h3 class="text-xl font-semibold mb-3 mt-6 border-b pb-2">可制作的菜谱列表</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="recipe-list">
+                    <!-- JS 动态渲染 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center p-4 text-gray-500 text-sm">
+        产品原型演示 v1.0
+    </footer>
+
+    <script>
+        // --- 模拟数据 ---
+        let foods = [
+            { id: 1, name: "西红柿", qty: 3, cat: "蔬菜" },
+            { id: 2, name: "鸡蛋", qty: 5, cat: "肉类" },
+            { id: 3, name: "面粉", qty: 1, cat: "主食" },
+            { id: 4, name: "牛肉", qty: 2, cat: "肉类" },
+            { id: 5, name: "葱", qty: 1, cat: "蔬菜" },
+            { id: 6, name: "盐", qty: 1, cat: "调料" }
+        ];
+
+        const recipes = [
+            { name: "西红柿炒鸡蛋", req: ["西红柿", "鸡蛋", "盐"], steps: "1. 鸡蛋打散炒熟盛出; 2. 炒西红柿出汁; 3. 加入鸡蛋翻炒, 放盐出锅。" },
+            { name: "葱爆牛肉", req: ["牛肉", "葱", "盐"], steps: "1. 牛肉切片腌制; 2. 大火爆炒牛肉至变色; 3. 加入葱段翻炒出锅。" },
+            { name: "鸡蛋面", req: ["面粉", "鸡蛋", "盐"], steps: "1. 面粉加水和面, 擀面条; 2. 煮熟面条; 3. 煎荷包蛋盖上, 撒盐。" },
+            { name: "西红柿牛肉汤", req: ["西红柿", "牛肉", "盐", "葱"], steps: "1. 牛肉切块焯水; 2. 西红柿切块炒出泥; 3. 加水炖煮牛肉1小时, 撒葱花出锅。" },
+            { name: "烤红薯", req: ["红薯"], steps: "1. 红薯洗净; 2. 烤箱200度烤1小时。" } // 用于演示缺失食材的情况
+        ];
+
+        // --- 页面切换逻辑 ---
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            if (tab === 'food') {
+                document.getElementById('food-section').classList.add('active');
+                document.getElementById('nav-food').classList.add('active');
+                renderFoods();
+            } else {
+                document.getElementById('recipe-section').classList.add('active');
+                document.getElementById('nav-recipe').classList.add('active');
+                renderRecipes();
+            }
+        }
+
+        // --- 食物管理逻辑 ---
+        function toggleAddForm() {
+            const form = document.getElementById('add-form');
+            form.classList.toggle('hidden');
+        }
+
+        function addFood() {
+            const name = document.getElementById('food-name').value.trim();
+            const qty = document.getElementById('food-qty').value;
+            const cat = document.getElementById('food-cat').value;
+            
+            if(!name || !qty) {
+                alert("请输入完整的食材信息！");
+                return;
+            }
+
+            foods.push({ id: Date.now(), name, qty: parseInt(qty), cat });
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-qty').value = '';
+            
+            toggleAddForm();
+            renderFoods();
+        }
+
+        function deleteFood(id) {
+            foods = foods.filter(f => f.id !== id);
+            renderFoods();
+        }
+
+        function renderFoods() {
+            const list = document.getElementById('food-list');
+            if (foods.length === 0) {
+                list.innerHTML = `<p class="text-gray-400 col-span-4 text-center py-6">库存空空如也，快去添加食材吧！</p>`;
+                return;
+            }
+            
+            list.innerHTML = foods.map(food => `
+                <div class="border p-3 rounded-lg flex justify-between items-center bg-white shadow-sm">
+                    <div>
+                        <h4 class="font-semibold text-lg">${food.name}</h4>
+                        <p class="text-sm text-gray-500">数量: ${food.qty} | 分类: ${food.cat}</p>
+                    </div>
+                    <button onclick="deleteFood(${food.id})" class="text-red-500 hover:bg-red-100 p-2 rounded transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M11 7V4a1 1 0 011-1h0a1 1 0 011 1v3" /></svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // --- 食谱推荐逻辑 ---
+        function getAvailableFoods() {
+            return foods.map(f => f.name);
+        }
+
+        function renderRecipes() {
+            const available = getAvailableFoods();
+            const list = document.getElementById('recipe-list');
+            
+            list.innerHTML = recipes.map(recipe => {
+                const missing = recipe.req.filter(r => !available.includes(r));
+                const canMake = missing.length === 0;
+                
+                let reqHtml = recipe.req.map(r => {
+                    const have = available.includes(r);
+                    return `<span class="text-xs px-2 py-1 rounded m-1 ${have ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700 line-through'}">${r}</span>`;
+                }).join('');
+
+                return `
+                    <div class="border rounded-lg p-4 ${canMake ? 'bg-green-50' : 'bg-gray-50 opacity-75'}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">${recipe.name}</h4>
+                            ${canMake ? '<span class="text-xs bg-green-500 text-white px-2 py-1 rounded">可制作</span>' : '<span class="text-xs bg-gray-400 text-white px-2 py-1 rounded">缺食材</span>'}
+                        </div>
+                        <div class="my-2"><strong>所需食材:</strong><div>${reqHtml}</div></div>
+                        ${canMake ? `<p class="text-sm text-gray-600 mt-2 bg-white p-2 rounded">${recipe.steps}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generateRandomRecipe() {
+            // 过滤出可以完全制作的菜谱
+            const available = getAvailableFoods();
+            const possibleRecipes = recipes.filter(r => r.req.filter(req => !available.includes(req)).length === 0);
+            
+            const area = document.getElementById('random-recipe-area');
+            
+            if (possibleRecipes.length === 0) {
+                area.classList.remove('hidden');
+                area.innerHTML = `<p class="text-center text-red-500">当前库存不足以制作任何完整菜谱，请先补充食材！</p>`;
+                return;
+            }
+
+            // 随机抽取一个
+            const random = possibleRecipes[Math.floor(Math.random() * possibleRecipes.length)];
+            
+            area.classList.remove('hidden');
+            area.innerHTML = `
+                <h3 class="text-xl font-bold text-purple-600 mb-2">🎯 厨房为你推荐: ${random.name}</h3>
+                <p class="text-sm mb-2"><strong>所需食材:</strong> ${random.req.join('、')}</p>
+                <p class="text-sm text-gray-700 bg-white p-3 rounded border border-purple-100">${random.steps}</p>
+            `;
+        }
+
+        // 初始化
+        renderFoods();
+    </script>
+</body>
+</html>

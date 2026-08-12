@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>共享日历 - 高级原型</title>
+    <style>
+        :root {
+            --primary-color: #409EFF;
+            --success-color: #67C23A;
+            --warning-color: #E6A23C;
+            --danger-color: #F56C6C;
+            --info-color: #909399;
+            --border-color: #e4e7ed;
+            --bg-color: #f5f7fa;
+            --text-primary: #303133;
+            --text-regular: #606266;
+            --text-placeholder: #c0c4cc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        /* 布局容器 */
+        .calendar-container {
+            display: flex;
+            height: calc(100vh - 40px);
+            background: #fff;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 240px;
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .create-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .create-btn:hover { background-color: #66b1ff; }
+
+        /* 迷你日历 */
+        .mini-cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .mini-cal-title { font-weight: bold; }
+        .mini-cal-nav span { cursor: pointer; color: var(--text-regular); margin: 0 5px; }
+
+        .mini-cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 12px;
+        }
+        .mini-cal-grid .header { color: var(--text-placeholder); padding: 5px 0; }
+        .mini-cal-grid .day {
+            padding: 5px 0;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .mini-cal-grid .day:hover { background-color: #ecf5ff; color: var(--primary-color); }
+        .mini-cal-grid .day.other-month { color: var(--text-placeholder); }
+        .mini-cal-grid .day.today {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 日历分类筛选 */
+        .cal-categories {
+            margin-top: 30px;
+        }
+        .category-title {
+            font-size: 12px;
+            color: var(--text-regular);
+            margin-bottom: 10px;
+        }
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+            cursor: pointer;
+        }
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .category-item span { font-size: 13px; }
+
+        /* 右侧主区域 */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 工具栏 */
+        .cal-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .btn-today {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .nav-arrows span {
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-regular);
+            padding: 0 5px;
+        }
+        .current-date {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .toolbar-right {
+            display: flex;
+            gap: 10px;
+        }
+        .view-switch {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .view-switch button {
+            padding: 6px 12px;
+            background: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .view-switch button.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 日历主体 */
+        .calendar-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .week-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .week-header div {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--text-regular);
+            background: #fafafa;
+        }
+        .week-header .weekend { color: var(--danger-color); }
+
+        .month-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: 1fr; /* 使行高平分剩余空间 */
+            border-right: 1px solid var(--border-color);
+        }
+
+        .day-cell {
+            border-bottom: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
+            padding: 5px;
+            overflow: hidden;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .day-cell:hover { background-color: #fafafa; }
+        .day-cell.other-month { background-color: #fbfbfb; }
+        
+        .date-num {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+        .day-cell.today .date-num {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+        }
+        .day-cell.weekend .date-num { color: var(--danger-color); }
+
+        /* 事件块 */
+        .event-block {
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin-bottom: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+        }
+        .event-block::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: white;
+            margin-right: 5px;
+        }
+        
+        .e-red { background: #fde2e2; color: var(--danger-color); border-left: 2px solid var(--danger-color); }
+        .e-green { background: #e1f3d8; color: var(--success-color); border-left: 2px solid var(--success-color); }
+        .e-blue { background: #d9ecff; color: var(--primary-color); border-left: 2px solid var(--primary-color); }
+        .e-orange { background: #faecd8; color: var(--warning-color); border-left: 2px solid var(--warning-color); }
+        .e-gray { background: #f4f4f5; color: var(--info-color); border-left: 2px solid var(--info-color); }
+
+        .more-link {
+            font-size: 12px;
+            color: var(--primary-color);
+            cursor: pointer;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        /* 底部图例/状态栏 (可选) */
+        .cal-statusbar {
+            padding: 5px 20px;
+            background: #fafafa;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-regular);
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <!-- 左侧控制面板 -->
+        <div class="left-panel">
+            <button class="create-btn">+ 创建事件</button>
+            
+            <!-- 迷你日历 -->
+            <div class="mini-cal-header">
+                <span class="mini-cal-title">2023年 11月</span>
+                <div class="mini-cal-nav">
+                    <span>‹</span>
+                    <span>›</span>
+                </div>
+            </div>
+            <div class="mini-cal-grid">
+                <div class="header">日</div><div class="header">一</div><div class="header">二</div><div class="header">三</div><div class="header">四</div><div class="header">五</div><div class="header">六</div>
+                <!-- 简单模拟一个月 -->
+                <div class="day other-month">29</div><div class="day other-month">30</div><div class="day other-month">31</div><div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div>
+                <div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day today">8</div><div class="day">9</div><div class="day">10</div><div class="day">11</div>
+                <div class="day">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div>
+                <div class="day">19</div><div class="day">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div><div class="day">24</div><div class="day">25</div>
+                <div class="day">26</div><div class="day">27</div><div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day other-month">1</div><div class="day other-month">2</div>
+            </div>
+
+            <!-- 日历分类 -->
+            <div class="cal-categories">
+                <div class="category-title">我的日历</div>
+                <div class="category-item"><div class="color-dot" style="background: var(--danger-color);"></div><span>保险与还款</span></div>
+                <div class="category-item"><div class="color-dot" style="background: var(--success-color);"></div><span>家庭事件</span></div>
+                <div class="category-item"><div class="color-dot" style="background: var(--primary-color);"></div><span>个人私密</span></div>
+                <div class="category-item"><div class="color-dot" style="background: var(--warning-color);"></div><span>财产维保</span></div>
+                <div class="category-item"><div class="color-dot" style="background: var(--info-color);"></div><span>日常琐事</span></div>
+            </div>
+        </div>
+
+        <!-- 右侧日历主区域 -->
+        <div class="right-panel">
+            <!-- 工具栏 -->
+            <div class="cal-toolbar">
+                <div class="toolbar-left">
+                    <button class="btn-today">今天</button>
+                    <div class="nav-arrows">
+                        <span>‹</span>
+                        <span>›</span>
+                    </div>
+                    <div class="current-date">2023年 11月</div>
+                </div>
+                <div class="toolbar-right">
+                    <div class="view-switch">
+                        <button>日</button>
+                        <button>周</button>
+                        <button class="active">月</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日历主体 -->
+            <div class="calendar-body">
+                <div class="week-header">
+                    <div>星期日</div><div>星期一</div><div>星期二</div><div>星期三</div><div>星期四</div><div class="weekend">星期五</div><div class="weekend">星期六</div>
+                </div>
+                
+                <div class="month-grid">
+                    <!-- 第1周 -->
+                    <div class="day-cell other-month"><div class="date-num">29</div></div>
+                    <div class="day-cell other-month"><div class="date-num">30</div></div>
+                    <div class="day-cell other-month"><div class="date-num">31</div></div>
+                    <div class="day-cell">
+                        <div class="date-num">1</div>
+                        <div class="event-block e-gray">周三倒垃圾</div>
+                    </div>
+                    <div class="day-cell"><div class="date-num">2</div></div>
+                    <div class="day-cell weekend"><div class="date-num">3</div></div>
+                    <div class="day-cell weekend">
+                        <div class="date-num">4</div>
+                        <div class="event-block e-green">全家植物园野餐</div>
+                    </div>
+
+                    <!-- 第2周 -->
+                    <div class="day-cell"><div class="date-num">5</div></div>
+                    <div class="day-cell"><div class="date-num">6</div></div>
+                    <div class="day-cell"><div class="date-num">7</div></div>
+                    <div class="day-cell today">
+                        <div class="date-num">8</div>
+                        <div class="event-block e-red">建行信用卡还款</div>
+                    </div>
+                    <div class="day-cell">
+                        <div class="date-num">9</div>
+                        <div class="event-block e-orange">奔驰交强险到期</div>
+                        <div class="event-block e-orange">Macbook保修截止</div>
+                    </div>
+                    <div class="day-cell weekend">
+                        <div class="date-num">10</div>
+                        <div class="event-block e-green">📅 结婚纪念日</div>
+                    </div>
+                    <div class="day-cell weekend"><div class="date-num">11</div></div>
+
+                    <!-- 第3周 -->
+                    <div class="day-cell"><div class="date-num">12</div></div>
+                    <div class="day-cell">
+                        <div class="date-num">13</div>
+                        <div class="event-block e-gray">周三倒垃圾</div>
+                    </div>
+                    <div class="day-cell"><div class="date-num">14</div></div>
+                    <div class="day-cell">
+                        <div class="date-num">15</div>
+                        <div class="event-block e-blue">10:00 李四-私人体检</div>
+                    </div>
+                    <div class="day-cell"><div class="date-num">16</div></div>
+                    <div class="day-cell weekend">
+                        <div class="date-num">17</div>
+                        <div class="event-block e-orange">车辆保养预约</div>
+                    </div>
+                    <div class="day-cell weekend"><div class="date-num">18</div></div>
+
+                    <!-- 第4周 -->
+                    <div class="day-cell"><div class="date-num">19</div></div>
+                    <div class="day-cell"><div class="date-num">20</div></div>
+                    <div class="day-cell"><div class="date-num">21</div></div>
+                    <div class="day-cell"><div class="date-num">22</div></div>
+                    <div class="day-cell">
+                        <div class="date-num">23</div>
+                        <div class="event-block e-red">张三-重疾险到期</div>
+                        <div class="event-block e-red">房贷扣款日</div>
+                        <div class="event-block e-red">水电费自动扣款</div>
+                        <div class="more-link">查看更多 (2)</div>
+                    </div>
+                    <div class="day-cell weekend">
+                        <div class="date-num">24</div>
+                        <div class="event-block e-gray">19:00 倒垃圾</div>
+                    </div>
+                    <div class="day-cell weekend"><div class="date-num">25</div></div>
+
+                    <!-- 第5周 -->
+                    <div class="day-cell"><div class="date-num">26</div></div>
+                    <div class="day-cell"><div class="date-num">27</div></div>
+                    <div class="day-cell"><div class="date-num">28</div></div>
+                    <div class="day-cell"><div class="date-num">29</div></div>
+                    <div class="day-cell"><div class="date-num">30</div></div>
+                    <div class="day-cell other-month weekend"><div class="date-num">1</div></div>
+                    <div class="day-cell other-month weekend"><div class="date-num">2</div></div>
+                </div>
+            </div>
+
+            <!-- 底部状态栏 -->
+            <div class="cal-statusbar">
+                <span>共有 5 个日历分类，当前显示全部</span>
+                <span>当前时区: GMT+08:00 北京</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
