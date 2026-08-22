@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify,request
+from gitdb.util import exists
+import uuid
 from db import get_db_connection  # 导入我们写的获取连接的方法
+from werkzeug.security import generate_password_hash, check_password_hash
 user_bp = Blueprint('user', __name__ , url_prefix='/user')
 #所有用户列表
 @user_bp.route('/list', methods=['GET'])
@@ -27,10 +30,53 @@ def detail():
 @user_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    if data is None:
+        return jsonify({
+            "msg":"请求体为空",
+            "code":400
+        })
     username = data.get('username')
-    
-    print("username",username)
+    email = data.get('email')
+    password = data.get('password')
+    if not username or not email or not password:
+        return jsonify({
+            "msg":"用户名、邮箱、密码不能为空",
+            "code":400
+        })
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            #检查邮箱和用户名是否存在
+            check_sql = """
+                select user_id from users where email = %s or username = %s
+            """
+            cursor.execute(check_sql,(email,username))
+            exists_user = cursor.fetchone()
+            print("exists_user",exists_user)
+            if exists_user:
+                return jsonify({
+                    "msg": "邮箱或者重复",
+                    "code": 400
+                })
+            password_hash = generate_password_hash(password)
+            new_uuid = uuid.uuid4()
+            sql_insert = """
+                INSERT INTO users(user_id,username,email,password_hash)
+                VALUES (%s,%s,%s,%s)
+            """
+            cursor.execute(sql_insert,(str(new_uuid),username,email,password_hash))
+            connection.commit()
+            return jsonify({
+                "msg": "注册成功",
+                "code": 200
+            })
+    finally:
+        cursor.close()
+
+#用户登录
+@user_bp.route('/login',method=['POST'])
+def login():
     return jsonify({
-        "msg":"用户注册",
-        "data":data
+        "msg": "登录",
+        "code": 200
     })
