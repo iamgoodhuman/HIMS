@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify,request
 from gitdb.util import exists
 import uuid
+import pymysql
 from db import get_db_connection  # 导入我们写的获取连接的方法
 from werkzeug.security import generate_password_hash, check_password_hash
 user_bp = Blueprint('user', __name__ , url_prefix='/user')
@@ -61,10 +62,10 @@ def register():
             password_hash = generate_password_hash(password)
             new_uuid = uuid.uuid4()
             sql_insert = """
-                INSERT INTO users(user_id,username,email,password_hash)
-                VALUES (%s,%s,%s,%s)
+                INSERT INTO users(username,email,password_hash)
+                VALUES (%s,%s,%s)
             """
-            cursor.execute(sql_insert,(str(new_uuid),username,email,password_hash))
+            cursor.execute(sql_insert,(username,email,password_hash))
             connection.commit()
             return jsonify({
                 "msg": "注册成功",
@@ -74,9 +75,47 @@ def register():
         cursor.close()
 
 #用户登录
-@user_bp.route('/login',method=['POST'])
+@user_bp.route('/login',methods=['POST'])
 def login():
-    return jsonify({
-        "msg": "登录",
-        "code": 200
-    })
+    data = request.get_json()
+    if data is None:
+        return jsonify({
+            "msg": "请求体为空",
+            "code": 400
+        })
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({
+            "msg": "用户名或密码不能为空",
+            "code": 400
+        })
+
+    connection = get_db_connection()
+    try:
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+        sql_select = """
+            select username,password_hash from users where username = %s
+        """
+        cursor.execute(sql_select,(username,))
+        user = cursor.fetchone()
+        print("user",user)
+        if not user:
+            return jsonify({
+                "msg": "用户不存在",
+                "code": 400
+            })
+
+        stored_password_hash = user['password_hash']
+        if not check_password_hash(stored_password_hash,password):
+            return jsonify({
+                "msg": "密码错误",
+                "code": 400
+            })
+
+        return jsonify({
+            "msg": "登录成功",
+            "code": 200
+        })
+    finally:
+        cursor.close()

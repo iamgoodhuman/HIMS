@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务甘特图管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        
+        .task-row { transition: background 0.2s; cursor: pointer; }
+        .task-row:hover { background: #f8fafc; }
+        .task-row.active { background: #eff6ff; border-left: 3px solid #3b82f6; }
+        .task-row.draggable { cursor: grab; }
+        .task-row.draggable:active { cursor: grabbing; }
+        
+        .gantt-bar { transition: all 0.2s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .gantt-bar:hover { opacity: 0.85; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .gantt-bar.selected { box-shadow: 0 0 0 2px #1d4ed8, 0 4px 6px -1px rgba(0, 0, 0, 0.2); z-index: 20; }
+        
+        .day-cell { transition: background 0.2s; }
+        .day-cell.drag-over { background: #dbeafe !important; box-shadow: inset 0 0 0 2px #3b82f6; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b p-4 flex justify-between items-center shadow-sm z-10">
+        <h1 class="text-xl font-bold text-blue-600">任务与进度管理</h1>
+        <button onclick="openModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium text-sm transition">
+            + 新增任务
+        </button>
+    </header>
+
+    <!-- 主体区域：左右布局 -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- 左侧列表区 -->
+        <aside class="w-1/5 bg-white border-r shrink-0 flex flex-col overflow-hidden">
+            <!-- 顶部图例：只保留低中高 -->
+            <div class="p-3 border-b bg-gray-50">
+                <div class="text-xs font-bold text-gray-600 mb-2">任务级别</div>
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-sm" style="background-color: #60a5fa;"></span>
+                        <span class="text-gray-700">低</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-sm" style="background-color: #facc15;"></span>
+                        <span class="text-gray-700">中</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-sm" style="background-color: #ef4444;"></span>
+                        <span class="text-gray-700">高</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 列表滚动区 -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="left-list-container" class="text-sm">
+                    <!-- 分类列表将由 JS 动态渲染 -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧甘特图区 -->
+        <section class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <!-- 头部月份切换 -->
+            <div class="bg-white border-b px-4 py-2 flex justify-between items-center">
+                <div class="flex items-center gap-4 mx-auto">
+                    <button onclick="changeMonth(-1)" class="text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span id="current-month-label" class="font-medium text-gray-700 w-24 text-center"></span>
+                    <button onclick="changeMonth(1)" class="text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <button onclick="goToday()" class="ml-4 text-xs border border-gray-300 text-gray-600 px-2 py-1 rounded hover:bg-gray-50">回到今天</button>
+                </div>
+            </div>
+            
+            <!-- 甘特图容器：只保留纵向滚动，横向隐藏且不出现滚动条 -->
+            <div class="flex-1 overflow-y-auto overflow-x-hidden" id="gantt-scroll-container">
+                <div id="gantt-container" class="p-4">
+                    <!-- 甘特图将由 JS 动态渲染 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 新增任务模态框 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-96 fade-in">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-semibold">新增任务</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <form id="task-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">任务标题</label>
+                    <input type="text" id="task-title" required class="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="请输入任务名称">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">开始时间 (必填)</label>
+                        <input type="date" id="task-start" required class="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">结束时间 (选填)</label>
+                        <input type="date" id="task-end" class="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">任务级别</label>
+                    <select id="task-level" class="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="low">低</option>
+                        <option value="medium" selected>中</option>
+                        <option value="high">高</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">确认新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // --- 数据结构 ---
+    const today = new Date();
+    const formatData = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+    
+    let tasks = [
+        { id: 1, title: "需求评审与原型设计", start: formatData(new Date(today.getFullYear(), today.getMonth(), 1)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 3)), level: "high", status: "in_progress" },
+        { id: 2, title: "数据库表结构设计", start: formatData(new Date(today.getFullYear(), today.getMonth(), 5)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 6)), level: "medium", status: "in_progress" }, 
+        { id: 3, title: "前端页面搭建", start: formatData(new Date(today.getFullYear(), today.getMonth() - 1, 25)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 8)), level: "high", status: "in_progress" }, 
+        { id: 4, title: "API接口联调", start: formatData(new Date(today.getFullYear(), today.getMonth(), 10)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 12)), level: "low", status: "completed" },
+        { id: 5, title: "旧版本Bug修复", start: formatData(new Date(today.getFullYear(), today.getMonth(), 15)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 16)), level: "medium", status: "abandoned" },
+        { id: 6, title: "下期需求规划", start: formatData(new Date(today.getFullYear(), today.getMonth(), 20)), end: formatData(new Date(today.getFullYear(), today.getMonth(), 25)), level: "low", status: "in_progress" },
+        // 未分配任务：只有开始时间，没有结束时间
+        { id: 7, title: "待规划: 竞品分析", start: formatData(new Date(today.getFullYear(), today.getMonth(), 12)), end: null, level: "medium", status: "in_progress" },
+        { id: 8, title: "待规划: 周报整理", start: formatData(new Date(today.getFullYear(), today.getMonth(), 15)), end: null, level: "low", status: "in_progress" }
+    ];
+
+    // 使用 Hex 颜色彻底解决 Tailwind 动态类名不生效的问题
+    const levelStyles = {
+        low: { color: "#60a5fa" },   // blue-400
+        medium: { color: "#facc15" }, // yellow-400
+        high: { color: "#ef4444" }    // red-500
+    };
+
+    // --- 状态计算逻辑 ---
+    function getTaskCategory(task) {
+        if (task.status === 'completed') return 'completed';
+        if (task.status === 'abandoned') return 'abandoned';
+        
+        if (!task.end) return 'unassigned'; // 只有 start 没有 end
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const start = new Date(task.start + 'T00:00:00');
+        const end = new Date(task.end + 'T00:00:00');
+        end.setHours(23, 59, 59, 999);
+
+        const diffDaysEnd = (end - now) / 86400000;
+
+        if (diffDaysEnd < 0) return 'overdue'; // 恢复逾期区域
+        if (diffDaysEnd <= 2) return 'due_soon';
+        return 'in_progress';
+    }
+
+    const categoryConfig = {
+        unassigned: { title: "未分配任务", icon: "📥", color: "text-gray-600" },
+        in_progress: { title: "正在进行中", icon: "🔄", color: "text-blue-600" },
+        due_soon: { title: "两天到期任务", icon: "⚠️", color: "text-orange-600" },
+        overdue: { title: "逾期任务", icon: "🔥", color: "text-red-600" },
+        completed: { title: "完成任务", icon: "✅", color: "text-green-600" },
+        abandoned: { title: "放弃任务", icon: "🗑️", color: "text-gray-400" }
+    };
+
+    // --- 渲染左侧普通列表 ---
+    function renderLeftList() {
+        const container = document.getElementById('left-list-container');
+        container.innerHTML = '';
+        
+        const groupedTasks = {
+            unassigned: [],
+            in_progress: [],
+            due_soon: [],
+            overdue: [],
+            completed: [],
+            abandoned: []
+        };
+
+        tasks.forEach(task => {
+            const cat = getTaskCategory(task);
+            groupedTasks[cat].push(task);
+        });
+
+        let html = '';
+        
+        for (const key in groupedTasks) {
+            const config = categoryConfig[key];
+            const list = groupedTasks[key];
+            
+            const listScrollStyle = list.length > 5 ? 'max-height: 200px; overflow-y: auto;' : '';
+            
+            html += `
+                <div class="border-b border-gray-100">
+                    <div class="px-3 py-2 flex justify-between items-center sticky top-0 bg-white z-10">
+                        <span class="font-bold ${config.color} text-xs">${config.icon} ${config.title}</span>
+                        <span class="bg-gray-100 text-gray-500 rounded-full px-2 text-xs">${list.length}</span>
+                    </div>
+                    <div style="${listScrollStyle}">
+                        ${list.map(task => {
+                            const isStrikethrough = task.status === 'completed' || task.status === 'abandoned';
+                            let prefix = '';
+                            
+                            let dotColor = levelStyles[task.level].color;
+                            if(task.status === 'completed') {
+                                prefix = '[已完成] ';
+                                dotColor = '#22c55e'; // green-500
+                            }
+                            if(task.status === 'abandoned') {
+                                prefix = '[已放弃] ';
+                                dotColor = '#9ca3af'; // gray-400
+                            }
+
+                            const isDraggable = !task.end;
+                            const dragAttr = isDraggable ? `draggable="true" ondragstart="handleDragStart(event, ${task.id})"` : '';
+
+                            return `
+                                <div class="task-row flex items-center px-3 py-2 border-b border-gray-50 ${isDraggable ? 'draggable' : ''}" 
+                                     ${dragAttr}
+                                     onclick="selectTask(${task.id})" 
+                                     data-task-id="${task.id}" 
+                                     title="${task.start ? `开始: ${task.start}` : ''}${task.end ? ` 结束: ${task.end}` : ' 拖拽到右侧甘特图分配结束日期'}">
+                                    <div class="flex-1 min-w-0 flex items-center">
+                                        <span class="w-2 h-2 rounded-full mr-2 shrink-0" style="background-color: ${dotColor};"></span>
+                                        <span class="truncate ${isStrikethrough ? 'line-through text-gray-400' : 'text-gray-800'}">${prefix}${task.title}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') || `<div class="px-3 py-2 text-xs text-gray-300">暂无任务</div>`}
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    // --- 甘特图视图控制 ---
+    let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    function changeMonth(offset) {
+        viewDate.setMonth(viewDate.getMonth() + offset);
+        renderGanttChart();
+    }
+
+    function goToday() {
+        viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        renderGanttChart();
+    }
+
+    function renderGanttChart() {
+        const container = document.getElementById('gantt-container');
+        container.innerHTML = '';
+        
+        const monthLabel = document.getElementById('current-month-label');
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        monthLabel.textContent = `${year}年 ${month + 1}月`;
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month, daysInMonth);
+        lastDayOfMonth.setHours(23, 59, 59, 999);
+
+        const rowHeight = 40;
+        const headerHeight = 40; 
+        const leftColumnWidth = 150; // 稍微调小，给右侧日期更多空间
+        
+        const getWeekDay = (date) => {
+            const days = ['日', '一', '二', '三', '四', '五', '六'];
+            return `周${days[date.getDay()]}`;
+        };
+
+        // 表头：使用 Flex 布局，右侧使用 1fr 自适应
+        let headerHtml = `
+            <div class="flex w-full" style="height:${headerHeight}px;">
+                <div class="bg-gray-100 border-b border-r flex items-center justify-center" style="width:${leftColumnWidth}px; height:${headerHeight}px;">
+                    <span class="text-sm font-bold text-gray-600">${year}-${String(month + 1).padStart(2, '0')}</span>
+                </div>
+                <div class="flex-1 grid" style="grid-template-columns: repeat(${daysInMonth}, 1fr);">
+        `;
+        
+        for(let i=1; i<=daysInMonth; i++) {
+            const date = new Date(year, month, i);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isToday = date.toDateString() === today.toDateString();
+            const dateStr = formatData(date);
+            const weekStr = getWeekDay(date);
+            
+            headerHtml += `
+                <div class="day-cell border-r border-b flex flex-col items-center justify-center text-xs ${isWeekend ? 'bg-gray-50 text-gray-400' : 'text-gray-600'} ${isToday ? 'bg-blue-50 font-bold text-blue-600' : ''}" 
+                     style="min-width: 0;"
+                     ondragover="handleDragOver(event)" 
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, '${dateStr}')">
+                    <span>${i}日</span>
+                    <span class="text-[10px] ${isToday ? 'text-blue-500' : 'text-gray-400'}">${weekStr}</span>
+                </div>
+            `;
+        }
+        headerHtml += `</div></div>`;
+
+        // 任务行
+        let bodyHtml = `<div class="w-full">`;
+        let displayRowCount = 0; 
+        let rowsHtml = '';
+        
+        tasks.forEach((task, index) => {
+            if (!task.start || !task.end) return;
+
+            const taskStart = new Date(task.start + 'T00:00:00');
+            const taskEnd = new Date(task.end + 'T00:00:00');
+            taskEnd.setHours(23, 59, 59, 999);
+            
+            if (taskEnd < firstDayOfMonth || taskStart > lastDayOfMonth) {
+                return;
+            }
+
+            displayRowCount++;
+            const validStart = taskStart < firstDayOfMonth ? firstDayOfMonth : taskStart;
+            const validEnd = taskEnd > lastDayOfMonth ? lastDayOfMonth : taskEnd;
+
+            const offsetDays = Math.floor((validStart - firstDayOfMonth) / 86400000) + 1;
+            const durationDays = Math.ceil((validEnd - validStart) / 86400000) + 1;
+            
+            let barColor = levelStyles[task.level].color; 
+            let statusText = '';
+            
+            if(task.status === 'completed') { 
+                barColor = '#22c55e'; 
+                statusText = '[已完成] ';
+            }
+            if(task.status === 'abandoned') { 
+                barColor = '#9ca3af'; 
+                statusText = '[已放弃] ';
+            }
+
+            const barText = `${statusText}${task.title}`;
+            
+            rowsHtml += `
+                <div class="flex w-full border-b border-gray-100" style="height:${rowHeight}px;">
+                    <div class="border-r flex items-center px-2 text-xs overflow-hidden bg-white" style="width:${leftColumnWidth}px; height:${rowHeight}px;">
+                        <span class="truncate ${task.status === 'completed' || task.status === 'abandoned' ? 'text-gray-400 line-through' : 'text-gray-800'}">${statusText}${task.title}</span>
+                    </div>
+                    <div class="flex-1 grid" style="grid-template-columns: repeat(${daysInMonth}, 1fr);">
+                        <div id="gantt-bar-${task.id}" class="gantt-bar relative rounded text-xs flex items-center px-2 text-white my-1" 
+                             style="grid-column: ${offsetDays} / span ${durationDays}; background-color: ${barColor};" 
+                             onclick="selectTask(${task.id})"
+                             title="${barText} (${task.start} ~ ${task.end})">
+                            ${barText}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        bodyHtml += rowsHtml + `</div>`;
+
+        container.innerHTML = headerHtml + bodyHtml;
+        container.style.height = `${headerHeight + (displayRowCount * rowHeight) + 20}px`;
+    }
+
+    // --- 联动选中逻辑 ---
+    function selectTask(taskId) {
+        document.querySelectorAll('.task-row').forEach(el => el.classList.remove('active'));
+        const leftRow = document.querySelector(`.task-row[data-task-id="${taskId}"]`);
+        if (leftRow) leftRow.classList.add('active');
+
+        document.querySelectorAll('.gantt-bar').forEach(el => el.classList.remove('selected'));
+        const ganttBar = document.getElementById(`gantt-bar-${taskId}`);
+        // 因为没有横向滚动了，不需要计算 scrollTo
+        if (ganttBar) {
+            ganttBar.classList.add('selected');
+        }
+    }
+
+    // --- 拖拽逻辑 ---
+    let draggedTaskId = null;
+
+    function handleDragStart(event, taskId) {
+        draggedTaskId = taskId;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', taskId);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        event.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(event) {
+        event.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(event, dateStr) {
+        event.preventDefault();
+        event.currentTarget.classList.remove('drag-over');
+        
+        if (draggedTaskId) {
+            const task = tasks.find(t => t.id === draggedTaskId);
+            if (task) {
+                if(new Date(dateStr) < new Date(task.start)) {
+                    alert("结束日期不能早于开始日期！");
+                    draggedTaskId = null;
+                    return;
+                }
+                task.end = dateStr; 
+                task.status = 'in_progress';
+                
+                renderLeftList();
+                renderGanttChart();
+                setTimeout(() => selectTask(task.id), 100);
+            }
+            draggedTaskId = null;
+        }
+    }
+
+    function openModal() {
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+    }
+
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+        document.getElementById('task-form').reset();
+    }
+
+    document.getElementById('task-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const title = document.getElementById('task-title').value;
+        const start = document.getElementById('task-start').value;
+        const end = document.getElementById('task-end').value || null;
+        const level = document.getElementById('task-level').value;
+
+        if(end && new Date(start) > new Date(end)) {
+            alert("开始时间不能晚于结束时间！");
+            return;
+        }
+
+        const newTask = {
+            id: Date.now(),
+            title: title,
+            start: start,
+            end: end,
+            level: level,
+            status: "in_progress"
+        };
+
+        tasks.push(newTask);
+        closeModal();
+        renderLeftList();
+        renderGanttChart();
+    });
+
+    // --- 初始化 ---
+    renderLeftList();
+    renderGanttChart();
+
+</script>
+</body>
+</html>
