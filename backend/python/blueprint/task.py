@@ -32,5 +32,10 @@ def create():
                 "msg": "新增成功",
                 "code": 200
             })
+    except Exception as e:
+        return jsonify({
+            "msg": "服务器连接失败或数据库执行错误",
+            "code": 500
+        })
     finally:
         connection.close()
