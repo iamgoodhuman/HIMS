@@ -1,4 +1,4 @@
-CREATE TABLE `users` (
+`hims`CREATE TABLE `users` (
   `user_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户唯一ID',
   `username` VARCHAR(50) NOT NULL COMMENT '用户名',
   `email` VARCHAR(100) NOT NULL COMMENT '邮箱（用于登录和通知）',
@@ -68,10 +68,35 @@ SELECT * FROM users
 ALTER TABLE users MODIFY COLUMN user_id VARCHAR(36) NOT NULL;
 
 
+CREATE TABLE `tasks` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    
+    `task_title` VARCHAR(255) NOT NULL COMMENT '任务标题',
+    `task_description` TEXT NULL COMMENT '任务描述',
+    
+    `start_time` DATETIME NULL COMMENT '开始时间',
+    `end_time` DATETIME NULL COMMENT '结束时间',
+    
+    `creator_id` BIGINT NULL COMMENT '创建人ID (关联用户表)',
+    `finisher_id` BIGINT NULL COMMENT '完成人ID (关联用户表)',
+    `abandoner_id` BIGINT NULL COMMENT '放弃人ID (关联用户表)',
+    
+    `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建日期',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    
+    PRIMARY KEY (`id`),
+    INDEX `idx_creator_id` (`creator_id`),
+    INDEX `idx_create_time` (`create_time`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='任务信息表';
+
+SELECT * FROM tasks
 
 
+INSERT INTO tasks(
 
-
+)
 
 
 
