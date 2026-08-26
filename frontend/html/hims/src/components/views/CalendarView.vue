@@ -13,62 +13,74 @@
     <main class="flex-1 flex overflow-hidden">
 
       <!-- 左侧列表区 -->
-      <aside class="w-1/5 bg-white border-r shrink-0 flex flex-col overflow-hidden">
+      <aside class="w-1/4 bg-gray-50 border-r shrink-0 flex flex-col overflow-hidden">
         <!-- 顶部图例 -->
-        <div class="p-3 border-b bg-gray-50 shrink-0">
-          <div class="text-xs font-bold text-gray-600 mb-2">任务级别</div>
-          <div class="space-y-1.5 text-xs">
+        <div class="p-4 border-b bg-white shrink-0">
+          <div class="text-xs font-bold text-gray-700 mb-3">图例说明</div>
+          <div class="space-y-2 text-xs">
             <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-sm" style="background-color: #60a5fa;"></span>
-              <span class="text-gray-700">低</span>
+              <span class="w-3 h-3 rounded-sm shrink-0" style="background-color: #ef4444;"></span>
+              <span class="text-gray-700">高优先级</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-sm" style="background-color: #facc15;"></span>
-              <span class="text-gray-700">中</span>
+              <span class="w-3 h-3 rounded-sm shrink-0" style="background-color: #facc15;"></span>
+              <span class="text-gray-700">中优先级</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-sm" style="background-color: #ef4444;"></span>
-              <span class="text-gray-700">高</span>
+              <span class="w-3 h-3 rounded-sm shrink-0" style="background-color: #22c55e;"></span>
+              <span class="text-gray-700">低优先级</span>
             </div>
           </div>
         </div>
 
         <!-- 列表滚动区 -->
-        <div class="flex-1 overflow-y-auto">
-          <div class="text-sm">
-            <template v-for="(cfg, key) in categoryConfig" :key="key">
-              <div class="border-b border-gray-100">
-                <div class="px-3 py-2 flex justify-between items-center sticky top-0 bg-white z-10">
-                  <span class="font-bold text-xs" :class="cfg.color">{{ cfg.icon }} {{ cfg.title }}</span>
-                  <span class="bg-gray-100 text-gray-500 rounded-full px-2 text-xs">{{ groupedTasks[key].length }}</span>
-                </div>
-                <div :style="groupedTasks[key].length > 5 ? 'max-height: 200px; overflow-y: auto;' : ''">
-                  <template v-if="groupedTasks[key].length > 0">
-                    <div
-                      v-for="task in groupedTasks[key]"
-                      :key="task.id"
-                      class="task-row flex items-center px-3 py-2 border-b border-gray-50"
-                      :class="{ draggable: !task.end, active: selectedTaskId === task.id }"
-                      :draggable="!task.end"
-                      @dragstart="!task.end && handleDragStart($event, task.id)"
-                      @click="selectTask(task.id)"
-                      :data-task-id="task.id"
-                      :title="(task.start ? `开始: ${task.start}` : '') + (task.end ? ` 结束: ${task.end}` : ' 拖拽到右侧甘特图分配结束日期')"
-                    >
-                      <div class="flex-1 min-w-0 flex items-center">
-                        <span class="w-2 h-2 rounded-full mr-2 shrink-0" :style="{ backgroundColor: getTaskDotColor(task) }"></span>
-                        <span
-                          class="truncate"
-                          :class="(task.status === 'completed' || task.status === 'abandoned') ? 'line-through text-gray-400' : 'text-gray-800'"
-                        >{{ getTaskPrefix(task) }}{{ task.title }}</span>
-                      </div>
-                    </div>
-                  </template>
-                  <div v-else class="px-3 py-2 text-xs text-gray-300">暂无任务</div>
-                </div>
+        <div class="flex-1 overflow-y-auto p-3 space-y-2">
+          <template v-for="(cfg, key) in categoryConfig" :key="key">
+            <div class="category-group bg-white rounded-lg shadow-sm overflow-hidden">
+              <!-- 分类标题行 -->
+              <div
+                class="category-header flex items-center px-3 py-2.5 cursor-pointer select-none border-l-4 transition-colors hover:bg-gray-50"
+                :style="{ borderLeftColor: cfg.barColor }"
+                @click="toggleGroup(key)"
+              >
+                <span class="text-xs font-semibold text-gray-700 flex-1">{{ cfg.title }}</span>
+                <span
+                  class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-medium text-white"
+                  :style="{ backgroundColor: cfg.barColor }"
+                >{{ groupedTasks[key].length }}</span>
+                <svg
+                  class="w-4 h-4 text-gray-400 ml-1 transition-transform shrink-0"
+                  :class="{ 'rotate-90': !collapsedGroups[key] }"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
               </div>
-            </template>
-          </div>
+              <!-- 任务列表 -->
+              <div v-show="!collapsedGroups[key]" class="border-t border-gray-100">
+                <template v-if="groupedTasks[key].length > 0">
+                  <div
+                    v-for="task in groupedTasks[key]"
+                    :key="task.id"
+                    class="task-row flex items-center px-4 py-2.5 border-b border-gray-50 last:border-b-0"
+                    :class="{ draggable: !task.end, active: selectedTaskId === task.id }"
+                    :draggable="!task.end"
+                    @dragstart="!task.end && handleDragStart($event, task.id)"
+                    @click="selectTask(task.id)"
+                    :data-task-id="task.id"
+                    :title="(task.start ? `开始: ${task.start}` : '') + (task.end ? ` 结束: ${task.end}` : ' 拖拽到右侧甘特图分配结束日期')"
+                  >
+                    <span class="w-2 h-2 rounded-full mr-2.5 shrink-0" :style="{ backgroundColor: getTaskDotColor(task) }"></span>
+                    <span
+                      class="truncate text-xs"
+                      :class="(task.status === 'completed' || task.status === 'abandoned') ? 'line-through text-gray-400' : 'text-gray-800'"
+                    >{{ getTaskPrefix(task) }}{{ task.title }}</span>
+                  </div>
+                </template>
+                <div v-else class="px-4 py-3 text-xs text-gray-300 text-center">暂无任务</div>
+              </div>
+            </div>
+          </template>
         </div>
       </aside>
 
@@ -93,15 +105,15 @@
         </div>
 
         <!-- 甘特图容器 -->
-        <div class="flex-1 overflow-y-auto overflow-x-hidden" id="gantt-scroll-container">
+        <div class="flex-1 overflow-y-auto overflow-x-auto" id="gantt-scroll-container">
           <div class="p-4" :style="{ height: containerHeight + 'px' }">
             <!-- 表头 -->
             <div class="flex w-full" :style="{ height: headerHeight + 'px' }">
-              <div class="bg-gray-100 border-b border-r flex items-center justify-center"
-                   :style="{ width: leftColumnWidth + 'px', height: headerHeight + 'px' }">
+              <div class="bg-gray-100 border-b border-r flex items-center justify-center shrink-0"
+                   :style="{ width: leftColumnWidth + 'px', height: headerHeight + 'px', position: 'sticky', left: 0, zIndex: 20 }">
                 <span class="text-sm font-bold text-gray-600">{{ yearMonthLabel }}</span>
               </div>
-              <div class="flex-1 grid" :style="{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }">
+              <div class="grid" :style="{ gridTemplateColumns: `repeat(${daysInMonth}, 40px)` }">
                 <div
                   v-for="(cell, idx) in headerCells"
                   :key="'h-' + idx"
@@ -111,7 +123,7 @@
                     cell.isToday ? 'bg-blue-50 font-bold text-blue-600' : '',
                     dragOverDate === cell.dateStr ? 'drag-over' : ''
                   ]"
-                  :style="{ minWidth: 0 }"
+                  :style="{ width: '40px' }"
                   @dragover.prevent="handleDragOver($event, cell.dateStr)"
                   @dragleave="handleDragLeave($event, cell.dateStr)"
                   @drop="handleDrop($event, cell.dateStr)"
@@ -131,13 +143,13 @@
                 :style="{ height: rowHeight + 'px' }"
               >
                 <div class="border-r flex items-center px-2 text-xs overflow-hidden bg-white shrink-0"
-                     :style="{ width: leftColumnWidth + 'px', height: rowHeight + 'px' }">
+                     :style="{ width: leftColumnWidth + 'px', height: rowHeight + 'px', position: 'sticky', left: 0, zIndex: 10 }">
                   <span
                     class="truncate"
                     :class="(task.status === 'completed' || task.status === 'abandoned') ? 'text-gray-400 line-through' : 'text-gray-800'"
                   >{{ getTaskPrefix(task) }}{{ task.title }}</span>
                 </div>
-                <div class="flex-1 grid shrink-0" :style="{ gridTemplateColumns: `repeat(${daysInMonth}, 1fr)` }">
+                <div class="grid shrink-0" :style="{ gridTemplateColumns: `repeat(${daysInMonth}, 40px)` }">
                   <div
                     :id="'gantt-bar-' + task.id"
                     class="gantt-bar relative rounded text-xs flex items-center px-2 text-white my-1 shrink-0"
@@ -147,6 +159,7 @@
                       backgroundColor: getTaskBarColor(task)
                     }"
                     @click="selectTask(task.id)"
+                    @contextmenu.prevent="handleContextMenu($event, task.id)"
                     :title="`${getTaskPrefix(task)}${task.title} (${task.start} ~ ${task.end})`"
                   >
                     {{ getTaskPrefix(task) }}{{ task.title }}
@@ -158,6 +171,29 @@
         </div>
       </section>
     </main>
+
+    <!-- 右键菜单 -->
+    <div
+      v-if="contextMenu.visible"
+      class="context-menu fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"
+      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      @click.stop
+    >
+      <div
+        class="context-menu-item flex items-center gap-2 px-4 py-2 text-sm cursor-pointer hover:bg-green-50 hover:text-green-600 transition-colors"
+        @click="setTaskStatus('completed')"
+      >
+        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+        <span>标记完成</span>
+      </div>
+      <div
+        class="context-menu-item flex items-center gap-2 px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 hover:text-gray-500 transition-colors"
+        @click="setTaskStatus('abandoned')"
+      >
+        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+        <span>放弃任务</span>
+      </div>
+    </div>
 
     <!-- 新增任务模态框 (Element Plus Dialog) -->
     <el-dialog
@@ -233,6 +269,14 @@ export default {
       draggedTaskId: null,
       dragOverDate: null,
 
+      // 右键菜单
+      contextMenu: {
+        visible: false,
+        x: 0,
+        y: 0,
+        taskId: null
+      },
+
       // 布局常量
       rowHeight: 40,
       headerHeight: 40,
@@ -254,19 +298,29 @@ export default {
 
       // 级别颜色
       levelStyles: {
-        low: { color: '#60a5fa' },
+        low: { color: '#22c55e' },
         medium: { color: '#facc15' },
         high: { color: '#ef4444' }
       },
 
       // 分类配置
       categoryConfig: {
-        unassigned: { title: '未分配任务', icon: '📥', color: 'text-gray-600' },
-        in_progress: { title: '正在进行中', icon: '🔄', color: 'text-blue-600' },
-        due_soon: { title: '两天到期任务', icon: '⚠️', color: 'text-orange-600' },
-        overdue: { title: '逾期任务', icon: '🔥', color: 'text-red-600' },
-        completed: { title: '完成任务', icon: '✅', color: 'text-green-600' },
-        abandoned: { title: '放弃任务', icon: '🗑️', color: 'text-gray-400' }
+        unassigned: { title: '未安排任务', barColor: '#9ca3af' },
+        in_progress: { title: '正在进行中', barColor: '#3b82f6' },
+        today: { title: '今日待办', barColor: '#f97316' },
+        overdue: { title: '已逾期', barColor: '#ef4444' },
+        completed: { title: '已完成', barColor: '#22c55e' },
+        abandoned: { title: '已放弃', barColor: '#94a3b8' }
+      },
+
+      // 分组折叠状态
+      collapsedGroups: {
+        unassigned: false,
+        in_progress: false,
+        today: false,
+        overdue: false,
+        completed: true,
+        abandoned: true
       },
 
       // 任务数据（初始 Mock）
@@ -326,7 +380,7 @@ export default {
       const grouped = {
         unassigned: [],
         in_progress: [],
-        due_soon: [],
+        today: [],
         overdue: [],
         completed: [],
         abandoned: []
@@ -344,6 +398,7 @@ export default {
 
       this.tasks.forEach(task => {
         if (!task.start || !task.end) return
+        if (task.status === 'completed' || task.status === 'abandoned') return
 
         const taskStart = new Date(task.start + 'T00:00:00')
         const taskEnd = new Date(task.end + 'T00:00:00')
@@ -381,12 +436,12 @@ export default {
 
       const now = new Date()
       now.setHours(0, 0, 0, 0)
+      const todayStr = this.formatData(now)
       const end = new Date(task.end + 'T00:00:00')
       end.setHours(23, 59, 59, 999)
 
-      const diffDaysEnd = (end - now) / 86400000
-      if (diffDaysEnd < 0) return 'overdue'
-      if (diffDaysEnd <= 2) return 'due_soon'
+      if (end < now) return 'overdue'
+      if (task.end === todayStr) return 'today'
       return 'in_progress'
     },
 
@@ -410,6 +465,35 @@ export default {
     // --- 选中联动 ---
     selectTask(taskId) {
       this.selectedTaskId = taskId
+    },
+
+    // --- 分组折叠 ---
+    toggleGroup(key) {
+      this.collapsedGroups[key] = !this.collapsedGroups[key]
+    },
+
+    // --- 右键菜单 ---
+    handleContextMenu(event, taskId) {
+      this.selectTask(taskId)
+      this.contextMenu.visible = true
+      this.contextMenu.x = event.clientX
+      this.contextMenu.y = event.clientY
+      this.contextMenu.taskId = taskId
+    },
+    closeContextMenu() {
+      this.contextMenu.visible = false
+      this.contextMenu.taskId = null
+    },
+    setTaskStatus(status) {
+      if (this.contextMenu.taskId) {
+        const task = this.tasks.find(t => t.id === this.contextMenu.taskId)
+        if (task) {
+          task.status = status
+          const label = status === 'completed' ? '已完成' : '已放弃'
+          this.$message.success(`任务已标记为${label}`)
+        }
+      }
+      this.closeContextMenu()
     },
 
     // --- 月份切换 ---
@@ -487,6 +571,12 @@ export default {
         this.closeModal()
       })
     }
+  },
+  mounted() {
+    document.addEventListener('click', this.closeContextMenu)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeContextMenu)
   }
 }
 </script>
@@ -495,20 +585,31 @@ export default {
 /* 自定义滚动条样式 */
 :deep(::-webkit-scrollbar) { width: 6px; height: 6px; }
 :deep(::-webkit-scrollbar-thumb) { background: #cbd5e1; border-radius: 3px; }
-:deep(::-webkit-scrollbar-track) { background: #f1f5f9; }
+:deep(::-webkit-scrollbar-track) { background: transparent; }
 
+/* 任务行 */
 .task-row { transition: background 0.2s; cursor: pointer; }
 .task-row:hover { background: #f8fafc; }
-.task-row.active { background: #eff6ff; border-left: 3px solid #3b82f6; }
+.task-row.active { background: #eff6ff; }
 .task-row.draggable { cursor: grab; }
 .task-row.draggable:active { cursor: grabbing; }
 
+/* 分类卡片 */
+.category-group { transition: box-shadow 0.2s; }
+.category-group:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+
+/* 甘特条 */
 .gantt-bar { transition: all 0.2s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .gantt-bar:hover { opacity: 0.85; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
 .gantt-bar.selected { box-shadow: 0 0 0 2px #1d4ed8, 0 4px 6px -1px rgba(0, 0, 0, 0.2); z-index: 20; }
 
+/* 日期格拖拽 */
 .day-cell { transition: background 0.2s; }
 .day-cell.drag-over { background: #dbeafe !important; box-shadow: inset 0 0 0 2px #3b82f6; }
+
+/* 右键菜单 */
+.context-menu { animation: fadeIn 0.15s ease-out; }
+.context-menu-item { transition: all 0.15s; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeIn 0.3s ease-out; }
